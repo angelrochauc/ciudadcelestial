@@ -1,0 +1,89 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: #f1f3f4;
+  margin: 0;
+}
+
+.container {
+  max-width: 750px;
+  margin: auto;
+  padding: 15px;
+}
+
+form {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+h1, h2 {
+  text-align: center;
+}
+
+label {
+  margin-top: 15px;
+  display: block;
+  font-weight: 500;
+}
+
+input, select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+}
+
+.add-btn {
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.card {
+  margin-top: 20px;
+  border-top: 5px solid #c45a4e;
+  padding-top: 10px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.table th, .table td {
+  padding: 8px;
+  text-align: center;
+}
+
+.table th:first-child,
+.table td:first-child {
+  text-align: left;
+}
+
+.submit-btn {
+  margin-top: 30px;
+  background: #34a853;
+  color: white;
+  border: none;
+  width: 100%;
+  padding: 14px;
+  border-radius: 6px;
+}
+
+@media (max-width: 600px) {
+  .row {
+    flex-direction: column;
+  }
+}
