@@ -1,8 +1,18 @@
 // ===============================
-// Fecha automática
+// FECHA AUTOMÁTICA (corrige zona horaria)
 // ===============================
-document.getElementById("fecha").value =
-  new Date().toISOString().split("T")[0];
+document.addEventListener("DOMContentLoaded", () => {
+  const inputFecha = document.getElementById("fecha");
+
+  if (inputFecha) {
+    const hoy = new Date();
+    const fechaLocal = new Date(
+      hoy.getTime() - hoy.getTimezoneOffset() * 60000
+    ).toISOString().split("T")[0];
+
+    inputFecha.value = fechaLocal;
+  }
+});
 
 const membersContainer = document.getElementById("membersContainer");
 const visitorsContainer = document.getElementById("visitorsContainer");
@@ -36,6 +46,11 @@ function addMember() {
 // VISITANTES
 // ===============================
 function addVisitor() {
+  const hoy = new Date();
+  const fechaLocal = new Date(
+    hoy.getTime() - hoy.getTimezoneOffset() * 60000
+  ).toISOString().split("T")[0];
+
   const id = "visitor-" + visitorIndex++;
 
   const div = document.createElement("div");
@@ -49,10 +64,10 @@ function addVisitor() {
       oninput="this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ ]/g, '')">
 
     <label>Fecha de Nacimiento</label>
-    <input type="date" placeholder="Fecha de Nacimiento" required>
+    <input type="date" required>
 
     <label>Fecha de Registro</label>
-    <input type="date" value="${document.getElementById("fecha").value}" readonly>
+    <input type="date" value="${fechaLocal}" readonly>
 
     <input type="tel" placeholder="Teléfono del contacto" required
       oninput="this.value = this.value.replace(/[^0-9]/g, '')">
@@ -65,7 +80,6 @@ function addVisitor() {
 
   visitorsContainer.appendChild(div);
 }
-
 
 // ===============================
 // TABLA MÉRITOS
@@ -102,6 +116,7 @@ function row(label, prefix) {
 // ===============================
 function getMerits(card) {
   const labels = ["asistencia", "biblia", "versiculo_semanal", "amigo_invitado"];
+
   return labels.map(key => {
     const checked = card.querySelector(`input[name*="${key}"]:checked`);
     return checked ? checked.value : "";
@@ -114,13 +129,14 @@ function getMerits(card) {
 document.getElementById("registroForm").addEventListener("submit", e => {
   e.preventDefault();
 
-  // Fecha automática (sin mostrarla)
   const hoy = new Date();
-  const fecha = hoy.toISOString().split("T")[0];
+  const fecha = new Date(
+    hoy.getTime() - hoy.getTimezoneOffset() * 60000
+  ).toISOString().split("T")[0];
 
   const selects = document.querySelectorAll("select");
-  const hora = selects[0].value;
-  const maestro = selects[1].value;
+  const hora = selects[0]?.value || "";
+  const maestro = selects[1]?.value || "";
 
   const members = document.querySelectorAll("#membersContainer .card");
   const visitors = document.querySelectorAll("#visitorsContainer .card");
@@ -131,56 +147,97 @@ document.getElementById("registroForm").addEventListener("submit", e => {
     return;
   }
 
-  let rows = [];
-// ===============================
-// MIEMBROS
-// ===============================
-members.forEach(card => {
-  const nombre = card.querySelector("h3").innerText;
-  const datos = getMerits(card); // [Asistencia, Biblia, Versiculo, Amigo Invitado]
-
-  rows.push([
-    "Miembro",      // Tipo
-    nombre,         // Nombre
-    "",             // Fecha Nacimiento (no aplica)
-    "",             // Teléfono Contacto (no aplica)
-    "",             // Nombre Contacto (no aplica)
-    ...datos,       // Asistencia, Biblia, Versiculo, Amigo Invitado
-    fecha,          // Fecha
-    hora,           // Hora
-    maestro         // Maestro
-  ]);
-});
-
- // ===============================
-// VISITANTES
-// ===============================
-visitors.forEach(card => {
-  const inputs = card.querySelectorAll("input");
-
-  const nombreVisitante   = inputs[0].value;
-  const fechaNacimiento   = inputs[1].value;
-  const telefonoContacto  = inputs[3].value;
-  const nombreContacto    = inputs[4].value;
-
-  const datos = getMerits(card); // [Asistencia, Biblia, Versiculo, Amigo Invitado]
-
-  rows.push([
-    "Visitante",        // Tipo
-    nombreVisitante,    // Nombre
-    fechaNacimiento,    // Fecha Nacimiento
-    telefonoContacto,   // Teléfono Contacto
-    nombreContacto,     // Nombre Contacto
-    ...datos,           // Asistencia, Biblia, Versiculo, Amigo Invitado
-    fecha,              // Fecha
-    hora,               // Hora
-    maestro             // Maestro
-  ]);
-});
-
+  let valid = true;
 
   // ===============================
-  // Enviar a Google Sheets
+  // VALIDAR MIEMBROS
+  // ===============================
+  members.forEach(card => {
+    const radios = card.querySelectorAll("input[type='radio']");
+    const names = [...new Set([...radios].map(r => r.name))];
+
+    names.forEach(name => {
+      if (!card.querySelector(`input[name="${name}"]:checked`)) {
+        valid = false;
+      }
+    });
+  });
+
+  // ===============================
+  // VALIDAR VISITANTES
+  // ===============================
+  visitors.forEach(card => {
+    const requiredInputs = card.querySelectorAll("input[required]");
+
+    requiredInputs.forEach(input => {
+      if (!input.value) valid = false;
+    });
+
+    const radios = card.querySelectorAll("input[type='radio']");
+    const names = [...new Set([...radios].map(r => r.name))];
+
+    names.forEach(name => {
+      if (!card.querySelector(`input[name="${name}"]:checked`)) {
+        valid = false;
+      }
+    });
+  });
+
+  if (!valid) {
+    alert("Completa todos los campos y méritos antes de enviar.");
+    return;
+  }
+
+  let rows = [];
+
+  // ===============================
+  // MIEMBROS
+  // ===============================
+  members.forEach(card => {
+    const nombre = card.querySelector("h3").innerText;
+    const datos = getMerits(card);
+
+    rows.push([
+      "Miembro",
+      nombre,
+      "",
+      "",
+      "",
+      ...datos,
+      fecha,
+      hora,
+      maestro
+    ]);
+  });
+
+  // ===============================
+  // VISITANTES
+  // ===============================
+  visitors.forEach(card => {
+    const inputs = card.querySelectorAll("input");
+
+    const nombreVisitante   = inputs[0].value;
+    const fechaNacimiento   = inputs[1].value;
+    const telefonoContacto  = inputs[3].value;
+    const nombreContacto    = inputs[4].value;
+
+    const datos = getMerits(card);
+
+    rows.push([
+      "Visitante",
+      nombreVisitante,
+      fechaNacimiento,
+      telefonoContacto,
+      nombreContacto,
+      ...datos,
+      fecha,
+      hora,
+      maestro
+    ]);
+  });
+
+  // ===============================
+  // ENVIAR A GOOGLE SHEETS
   // ===============================
   fetch("https://script.google.com/macros/s/AKfycbxCRfO88yZX_PezhffwqgCc3J8Vlt1tOMEzq-x6j4cLVihbQSMsBUoxWXzyBboNAe1ZmA/exec", {
     method: "POST",
@@ -189,51 +246,8 @@ visitors.forEach(card => {
   });
 
   alert("Registro guardado correctamente en Google Sheets ✅");
+
   document.getElementById("registroForm").reset();
-});
-
-
-document.getElementById("registroForm").addEventListener("submit", e => {
-  e.preventDefault();
-
-  const members = document.querySelectorAll("#membersContainer .card");
-  const visitors = document.querySelectorAll("#visitorsContainer .card");
-
-  // ❌ No permitir enviar vacío
-  if (members.length === 0 && visitors.length === 0) {
-    alert("Debes agregar al menos un miembro o un visitante.");
-    return;
-  }
-
-  // ❌ Validar que todos los méritos estén marcados en miembros
-  let valid = true;
-
-  members.forEach(card => {
-    const groups = card.querySelectorAll("tr");
-    groups.forEach(row => {
-      const radios = row.querySelectorAll("input[type='radio']");
-      if (radios.length) {
-        const checked = row.querySelector("input[type='radio']:checked");
-        if (!checked) valid = false;
-      }
-    });
-  });
-
-  // ❌ Validar visitantes también
-  visitors.forEach(card => {
-    const inputs = card.querySelectorAll("input[required]");
-    inputs.forEach(input => {
-      if (!input.value) valid = false;
-    });
-
-    const rows = card.querySelectorAll("tr");
-    rows.forEach(row => {
-      const radios = row.querySelectorAll("input[type='radio']");
-      if (radios.length) {
-        const checked = row.querySelector("input[type='radio']:checked");
-        if (!checked) valid = false;
-      }
-    });
-  });
-
+  membersContainer.innerHTML = "";
+  visitorsContainer.innerHTML = "";
 });
