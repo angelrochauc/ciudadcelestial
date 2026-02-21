@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro Ciudadano del Cielo</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const SHEETS_URL = "https://script.google.com/macros/s/AKfycbxCRfO88yZX_PezhffwqgCc3J8Vlt1tOMEzq-x6j4cLVihbQSMsBUoxWXzyBboNAe1ZmA/exec";
+
+const MIEMBROS_FIJOS = [
+  "Alicia Vargas","Andres Amores","Benjamin Paredes","Efi Victoria Haro",
+  "Ellie Gonzales","Esteban Mora","Gabriel Garcia","Hannah Gutierrez",
+  "Isabella Laverde","Jacobo Paz Cruz","Josue Paredes","Juan Comba",
+  "Julieth Hernandez","Mariana Mila","Mariana Verona","Natan Vargas",
+  "Noah Mancipe","Paula Martin Palacios","Salvador Mancipe","Santiago Amores",
+  "Tomas Atencia"
+];
+
+const MAESTROS = [
+  "ADRIANA SANCHEZ","ANGELA RINCON","BLANCA BERNAL","CAROL ALONSO",
+  "GABRIELA VEGA","JAIME ALONSO","JOSUE MILLAN","LISSETH ALVAREZ",
+  "LUIS MILLAN","MARIA E. BUENO","NELSON LABRADOR","NORMA ROCHA",
+  "SARA MONROY","SERGIO LABRADOR"
+];
+
+const MERITOS = ["ASISTENCIA","BIBLIA","VERSICULO SEMANAL","AMIGO INVITADO"];
+
+function load(key, def) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; }
+  catch { return def; }
+}
+
+function MeritsTable({ prefix, meritos, onChange, readOnly }) {
+  const thS = { padding:"8px 10px", background:"#f3f4f6", fontWeight:600, color:"#374151" };
+  const tdS = { padding:"8px 10px", textAlign:"center" };
+  return (
+    <table style={{width:"100%",borderCollapse:"collapse",marginTop:12,fontSize:13}}>
+      <thead>
+        <tr>
+          <th style={{...thS,textAlign:"left"}}>Cumplimiento Méritos</th>
+          <th style={thS}>SI</th>
+          <th style={thS}>NO</th>
+        </tr>
+      </thead>
+      <tbody>
+        {MERITOS.map(m => (
+          <tr key={m}>
+            <td style={{...tdS,textAlign:"left"}}>{m}</td>
+            <td style={tdS}><input type="radio" name={prefix+"_"+m} value="SI" checked={meritos[m]==="SI"} onChange={readOnly ? undefined : ()=>onChange(m,"SI")} disabled={readOnly} /></td>
+            <td style={tdS}><input type="radio" name={prefix+"_"+m} value="NO" checked={meritos[m]==="NO"} onChange={readOnly ? undefined : ()=>onChange(m,"NO")} disabled={readOnly} /></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function App() {
+  const today = new Date().toISOString().split("T")[0];
+
+  const [vista,           setVista]          = useState("form");
+  const [fecha,           setFecha]          = useState(() => load("rcc_fecha", today));
+  const [hora,            setHora]           = useState(() => load("rcc_hora", ""));
+  const [maestro,         setMaestro]        = useState(() => load("rcc_maestro", ""));
+  const [selected,        setSelected]       = useState("");
+  const [members,         setMembers]        = useState(() => load("rcc_members", []));
+  const [visitors,        setVisitors]       = useState(() => load("rcc_visitors", []));
+  const [historial,       setHistorial]      = useState(() => load("rcc_historial", []));
+  const [visitantesSaved, setVisitantesSaved]= useState(() => load("rcc_visitantes_saved", []));
+  const [detalle,         setDetalle]        = useState(null);
+  const [enviando,        setEnviando]       = useState(false);
+
+  useEffect(() => { localStorage.setItem("rcc_fecha",            JSON.stringify(fecha));          }, [fecha]);
+  useEffect(() => { localStorage.setItem("rcc_hora",             JSON.stringify(hora));           }, [hora]);
+  useEffect(() => { localStorage.setItem("rcc_maestro",          JSON.stringify(maestro));        }, [maestro]);
+  useEffect(() => { localStorage.setItem("rcc_members",          JSON.stringify(members));        }, [members]);
+  useEffect(() => { localStorage.setItem("rcc_visitors",         JSON.stringify(visitors));       }, [visitors]);
+  useEffect(() => { localStorage.setItem("rcc_historial",        JSON.stringify(historial));      }, [historial]);
+  useEffect(() => { localStorage.setItem("rcc_visitantes_saved", JSON.stringify(visitantesSaved));}, [visitantesSaved]);
+
+  const visitorsConNombre = visitors.filter(v => v.nombre.trim() !== "");
+
+  function initMeritos() {
+    return Object.fromEntries(MERITOS.map(m => [m, m==="ASISTENCIA" ? "SI" : ""]));
+  }
+
+  function agregarMiembro() {
+    if (!selected) { alert("Seleccione un ciudadano"); return; }
+    if (members.find(m => m.name === selected)) { alert("Este miembro ya fue agregado"); return; }
+    setMembers(prev => [...prev, { id: Date.now(), name: selected, meritos: initMeritos() }]);
+    setSelected("");
+  }
+
+  function agregarVisitante() {
+    setVisitors(prev => [...prev, { id: Date.now(), nombre:"", nacimiento:"", telefono:"", contacto:"", meritos: initMeritos() }]);
+  }
+
+  function updateVisitor(id, field, value) {
+    setVisitors(prev => prev.map(v => v.id === id ? {...v, [field]: value} : v));
+  }
+
+  function updateMeritoMember(id, merit, val) {
+    setMembers(prev => prev.map(m => m.id === id ? {...m, meritos:{...m.meritos,[merit]:val}} : m));
+  }
+
+  function updateMeritoVisitor(id, merit, val) {
+    setVisitors(prev => prev.map(v => v.id === id ? {...v, meritos:{...v.meritos,[merit]:val}} : v));
+  }
+
+  // ── VALIDAR Y ENVIAR ─────────────────────────────────────────
+  function enviar() {
+    if (!hora)    { alert("Seleccione la hora de clase"); return; }
+    if (!maestro) { alert("Seleccione el maestro"); return; }
+    if (members.length === 0 && visitors.length === 0) {
+      alert("Debes agregar al menos un miembro o un visitante.");
+      return;
+    }
+
+    // Validar que todos los méritos estén marcados
+    let valid = true;
+
+    members.forEach(m => {
+      MERITOS.forEach(merit => {
+        if (!m.meritos[merit]) valid = false;
+      });
+    });
+
+    visitors.forEach(v => {
+      if (!v.nombre.trim()) valid = false;
+      MERITOS.forEach(merit => {
+        if (!v.meritos[merit]) valid = false;
+      });
+    });
+
+    if (!valid) {
+      alert("Completa todos los campos y méritos antes de enviar.");
+      return;
+    }
+
+    // Construir filas para Google Sheets
+    let rows = [];
+
+    members.forEach(m => {
+      rows.push([
+        "Miembro",
+        m.name,
+        "", "", "",
+        m.meritos["ASISTENCIA"]       || "",
+        m.meritos["BIBLIA"]           || "",
+        m.meritos["VERSICULO SEMANAL"]|| "",
+        m.meritos["AMIGO INVITADO"]   || "",
+        fecha, hora, maestro
+      ]);
+    });
+
+    visitors.forEach(v => {
+      rows.push([
+        "Visitante",
+        v.nombre,
+        v.nacimiento,
+        v.telefono,
+        v.contacto,
+        v.meritos["ASISTENCIA"]       || "",
+        v.meritos["BIBLIA"]           || "",
+        v.meritos["VERSICULO SEMANAL"]|| "",
+        v.meritos["AMIGO INVITADO"]   || "",
+        fecha, hora, maestro
+      ]);
+    });
+
+    // Enviar a Google Sheets
+    setEnviando(true);
+    fetch(SHEETS_URL, {
+      method: "POST",
+      body: JSON.stringify(rows),
+      mode: "no-cors"
+    }).finally(() => {
+      setEnviando(false);
+
+      // Guardar visitantes con nombre para el futuro
+      const nuevosNombres = visitors
+        .map(v => v.nombre.trim())
+        .filter(n => n !== "" && !visitantesSaved.includes(n));
+      if (nuevosNombres.length > 0) {
+        setVisitantesSaved(prev => [...prev, ...nuevosNombres]);
+      }
+
+      // Guardar en historial local
+      const registro = {
+        id: Date.now(),
+        fecha, hora, maestro,
+        members: [...members],
+        visitors: [...visitors],
+        enviadoEn: new Date().toLocaleString("es-CO")
+      };
+      setHistorial(prev => [registro, ...prev]);
+
+      // Limpiar formulario
+      setFecha(today);
+      setHora("");
+      setMaestro("");
+      setMembers([]);
+      setVisitors([]);
+      setSelected("");
+
+      alert("✅ Registro enviado a Google Sheets correctamente.");
+    });
+  }
+
+  function limpiarFormulario() {
+    if (!confirm("¿Limpiar el formulario actual?")) return;
+    setFecha(today); setHora(""); setMaestro("");
+    setMembers([]); setVisitors([]); setSelected("");
+  }
+
+  function borrarVisitanteGuardado(nombre) {
+    setVisitantesSaved(prev => prev.filter(n => n !== nombre));
+  }
+
+  function borrarRegistro(id) {
+    if (!confirm("¿Eliminar este registro del historial?")) return;
+    setHistorial(prev => prev.filter(r => r.id !== id));
+    if (detalle && detalle.id === id) setDetalle(null);
+  }
+
+  const inp  = {width:"100%",marginTop:6,padding:"10px 12px",borderRadius:8,border:"1px solid #d1d5db",fontSize:14,background:"#fafafa",boxSizing:"border-box"};
+  const lbl  = {display:"block",fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.6px",color:"#6b7280",marginTop:18};
+  const card = {marginTop:25,paddingTop:15,borderTop:"2px solid #e5e7eb"};
+  const delB = {background:"none",border:"1px solid #ef4444",color:"#ef4444",padding:"4px 10px",borderRadius:6,fontSize:12,cursor:"pointer"};
+
+  // ── DETALLE ──────────────────────────────────────────────────
+  if (detalle) return (
+    <div style={{maxWidth:720,margin:"40px auto",padding:"0 20px",fontFamily:"Inter,Segoe UI,Arial,sans-serif",color:"#2c3e50"}}>
+      <div style={{background:"#fff",padding:30,borderRadius:14,border:"1px solid #e5e7eb"}}>
+        <button onClick={()=>setDetalle(null)} style={{marginBottom:20,background:"none",border:"1px solid #d1d5db",padding:"6px 14px",borderRadius:8,cursor:"pointer",fontSize:13}}>← Volver</button>
+        <h2 style={{fontSize:18,fontWeight:600,marginBottom:4}}>Registro del {detalle.fecha}</h2>
+        <p style={{fontSize:13,color:"#6b7280",marginBottom:4}}>Hora: {detalle.hora} · Maestro: {detalle.maestro}</p>
+        <p style={{fontSize:12,color:"#9ca3af",marginBottom:20}}>Enviado el {detalle.enviadoEn}</p>
+        <h3 style={{fontSize:14,fontWeight:600,marginBottom:8}}>Miembros ({detalle.members.length})</h3>
+        {detalle.members.length === 0 && <p style={{fontSize:13,color:"#9ca3af"}}>Ninguno</p>}
+        {detalle.members.map(m => (
+          <div key={m.id} style={card}>
+            <h3 style={{fontSize:14,fontWeight:600}}>{m.name}</h3>
+            <MeritsTable prefix={"dm_"+m.id} meritos={m.meritos} readOnly />
+          </div>
+        ))}
+        <h3 style={{fontSize:14,fontWeight:600,marginTop:25,marginBottom:8}}>Visitantes ({detalle.visitors.length})</h3>
+        {detalle.visitors.length === 0 && <p style={{fontSize:13,color:"#9ca3af"}}>Ninguno</p>}
+        {detalle.visitors.map(v => (
+          <div key={v.id} style={card}>
+            <h3 style={{fontSize:14,fontWeight:600}}>{v.nombre || "(sin nombre)"}</h3>
+            {v.nacimiento && <p style={{fontSize:13,color:"#6b7280",marginTop:4}}>Nacimiento: {v.nacimiento}</p>}
+            {v.telefono   && <p style={{fontSize:13,color:"#6b7280"}}>Tel: {v.telefono}</p>}
+            {v.contacto   && <p style={{fontSize:13,color:"#6b7280"}}>Contacto: {v.contacto}</p>}
+            <MeritsTable prefix={"dv_"+v.id} meritos={v.meritos} readOnly />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // ── HISTORIAL ────────────────────────────────────────────────
+  if (vista === "historial") return (
+    <div style={{maxWidth:720,margin:"40px auto",padding:"0 20px",fontFamily:"Inter,Segoe UI,Arial,sans-serif",color:"#2c3e50"}}>
+      <div style={{background:"#fff",padding:30,borderRadius:14,border:"1px solid #e5e7eb"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+          <h2 style={{fontSize:20,fontWeight:600}}>Historial de Registros</h2>
+          <button onClick={()=>setVista("form")} style={{background:"#2563eb",color:"#fff",border:"none",padding:"8px 16px",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>← Volver</button>
+        </div>
+
+        {visitantesSaved.length > 0 && (
+          <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,padding:16,marginBottom:20}}>
+            <p style={{fontSize:13,fontWeight:600,color:"#1e40af",marginBottom:10}}>⭐ Visitantes guardados en el selector</p>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+              {visitantesSaved.map(n => (
+                <span key={n} style={{background:"#dbeafe",color:"#1e40af",padding:"4px 10px",borderRadius:99,fontSize:12,display:"flex",alignItems:"center",gap:6}}>
+                  {n}
+                  <span onClick={()=>borrarVisitanteGuardado(n)} style={{cursor:"pointer",fontWeight:700,color:"#ef4444"}}>×</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {historial.length === 0 && <p style={{textAlign:"center",color:"#9ca3af",padding:"40px 0"}}>No hay registros enviados aún.</p>}
+        {historial.map(r => (
+          <div key={r.id} style={{border:"1px solid #e5e7eb",borderRadius:10,padding:16,marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{flex:1}}>
+              <p style={{fontWeight:600,fontSize:15}}>{r.fecha} · {r.hora}</p>
+              <p style={{fontSize:13,color:"#6b7280",marginTop:2}}>Maestro: {r.maestro}</p>
+              <p style={{fontSize:12,color:"#9ca3af",marginTop:2}}>{r.members.length} miembro(s) · {r.visitors.length} visitante(s) · {r.enviadoEn}</p>
+            </div>
+            <div style={{display:"flex",gap:8,marginLeft:12}}>
+              <button onClick={()=>setDetalle(r)} style={{background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",padding:"6px 12px",borderRadius:6,fontSize:12,cursor:"pointer",fontWeight:600}}>Ver</button>
+              <button onClick={()=>borrarRegistro(r.id)} style={delB}>Borrar</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // ── FORMULARIO ───────────────────────────────────────────────
+  return (
+    <div style={{maxWidth:720,margin:"40px auto",padding:"0 20px",fontFamily:"Inter,Segoe UI,Arial,sans-serif",color:"#2c3e50"}}>
+      <div style={{background:"#fff",padding:40,paddingBottom:120,borderRadius:14,border:"1px solid #e5e7eb"}}>
+
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:25}}>
+          <h1 style={{fontSize:20,fontWeight:600}}>Registro Ciudadano del Cielo</h1>
+          <button onClick={()=>setVista("historial")}
+            style={{background:"#f3f4f6",border:"1px solid #d1d5db",padding:"7px 14px",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151"}}>
+            📋 Historial {historial.length > 0 && `(${historial.length})`}
+          </button>
+        </div>
+
+        <label style={lbl}>Fecha</label>
+        <input type="date" value={fecha} onChange={e=>setFecha(e.target.value)} style={inp} />
+
+        <label style={lbl}>Hora de clase</label>
+        <select value={hora} onChange={e=>setHora(e.target.value)} style={inp}>
+          <option value="">Elige</option>
+          <option>8AM</option><option>10AM</option><option>6PM</option>
+        </select>
+
+        <label style={lbl}>Maestro</label>
+        <select value={maestro} onChange={e=>setMaestro(e.target.value)} style={inp}>
+          <option value="">Elige</option>
+          {MAESTROS.map(m=><option key={m}>{m}</option>)}
+        </select>
+
+        <label style={lbl}>Ciudadano Miembro</label>
+        <select value={selected} onChange={e=>setSelected(e.target.value)} style={inp}>
+          <option value="">── Elige ──</option>
+          {visitorsConNombre.map(v=>(
+            <option key={"actual_"+v.id} value={v.nombre}>⭐ {v.nombre} (visitante)</option>
+          ))}
+          {visitantesSaved.filter(n => !visitorsConNombre.find(v => v.nombre === n)).map(n=>(
+            <option key={"saved_"+n} value={n}>⭐ {n} (visitante)</option>
+          ))}
+          {MIEMBROS_FIJOS.map(m=><option key={m}>{m}</option>)}
+        </select>
+
+        {members.map(m => (
+          <div key={m.id} style={card}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <h3 style={{fontSize:15,fontWeight:600}}>{m.name}</h3>
+              <button onClick={()=>setMembers(prev=>prev.filter(x=>x.id!==m.id))} style={delB}>Eliminar</button>
+            </div>
+            <MeritsTable prefix={"m_"+m.id} meritos={m.meritos} onChange={(merit,val)=>updateMeritoMember(m.id,merit,val)} />
+          </div>
+        ))}
+
+        {visitors.map(v => (
+          <div key={v.id} style={card}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <h3 style={{fontSize:15,fontWeight:600}}>Visitante</h3>
+              <button onClick={()=>setVisitors(prev=>prev.filter(x=>x.id!==v.id))} style={delB}>Eliminar</button>
+            </div>
+            <label style={{...lbl,marginTop:14}}>Nombre completo</label>
+            <input type="text" placeholder="Nombres y Apellidos" value={v.nombre}
+              onChange={e=>updateVisitor(v.id,"nombre",e.target.value)} style={inp} />
+            <label style={{...lbl,marginTop:14}}>Fecha de Nacimiento</label>
+            <input type="date" value={v.nacimiento} onChange={e=>updateVisitor(v.id,"nacimiento",e.target.value)} style={inp} />
+            <label style={{...lbl,marginTop:14}}>Fecha de Registro</label>
+            <input type="date" value={fecha} readOnly style={{...inp,background:"#f0f0f0"}} />
+            <input type="tel" placeholder="Teléfono del contacto" value={v.telefono}
+              onChange={e=>updateVisitor(v.id,"telefono",e.target.value)} style={{...inp,marginTop:8}} />
+            <input type="text" placeholder="Nombre del contacto" value={v.contacto}
+              onChange={e=>updateVisitor(v.id,"contacto",e.target.value)} style={{...inp,marginTop:8}} />
+            <MeritsTable prefix={"v_"+v.id} meritos={v.meritos} onChange={(merit,val)=>updateMeritoVisitor(v.id,merit,val)} />
+          </div>
+        ))}
+
+        <div style={{position:"sticky",bottom:0,background:"#fff",borderTop:"1px solid #e5e7eb",padding:16,marginTop:40,display:"flex",gap:10,borderRadius:"0 0 14px 14px"}}>
+          <button onClick={agregarMiembro}
+            style={{flex:1,padding:11,borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",border:"1px solid #d1d5db",background:"#fff"}}>
+            ➕ Agregar Miembro
+          </button>
+          <button onClick={agregarVisitante}
+            style={{flex:1,padding:11,borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",border:"1px solid #d1d5db",background:"#fff"}}>
+            ➕ Agregar Visitante
+          </button>
+          <button onClick={enviar} disabled={enviando}
+            style={{flex:1,padding:11,borderRadius:8,fontSize:13,fontWeight:600,cursor:enviando?"not-allowed":"pointer",border:"none",background:enviando?"#93c5fd":"#2563eb",color:"#fff"}}>
+            {enviando ? "Enviando..." : "Enviar Registro"}
+          </button>
+         
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
