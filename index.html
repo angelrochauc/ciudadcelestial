@@ -10,76 +10,29 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: #f4f6f9; color: #2c3e50; }
-
     .page { max-width: 720px; margin: 40px auto; padding: 0 20px 20px; }
-
-    /* Formulario con espacio para el panel sticky inferior */
-    .form-wrap {
-      background: #fff;
-      border-radius: 14px;
-      border: 1px solid #e5e7eb;
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* Área scrollable */
-    .form-body {
-      padding: 30px 30px 20px;
-      overflow-y: auto;
-    }
-
-    /* Panel fijo en la parte inferior del card */
-    .form-footer {
-      border-top: 2px solid #e5e7eb;
-      padding: 16px 20px;
-      background: #fff;
-      border-radius: 0 0 14px 14px;
-      position: sticky;
-      bottom: 0;
-    }
-
-    .footer-select-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .footer-select-row select {
-      flex: 1;
-    }
-
-    .footer-btn-row {
-      display: flex;
-      gap: 10px;
-    }
-
-    /* Inputs / selects */
+    .form-wrap { background: #fff; border-radius: 14px; border: 1px solid #e5e7eb; display: flex; flex-direction: column; }
+    .form-body { padding: 30px 30px 20px; overflow-y: auto; }
+    .form-footer { border-top: 2px solid #e5e7eb; padding: 16px 20px; background: #fff; border-radius: 0 0 14px 14px; position: sticky; bottom: 0; }
+    .footer-select-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .footer-select-row select { flex: 1; }
+    .footer-btn-row { display: flex; gap: 10px; }
     .field { width: 100%; margin-top: 6px; padding: 10px 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 14px; background: #fafafa; }
     .field:focus { outline: none; border-color: #2563eb; background: #fff; }
     .field-readonly { background: #f0f0f0; }
     .field-mt { margin-top: 8px; }
-
     label.lbl { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: #6b7280; margin-top: 18px; }
     label.lbl-sm { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: #6b7280; margin-top: 14px; }
-
-    /* Encabezado */
     .hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
     .hdr h1 { font-size: 20px; font-weight: 600; }
-
-    /* Tarjetas */
     .card { margin-top: 22px; padding-top: 14px; border-top: 2px solid #e5e7eb; }
     .card-hdr { display: flex; justify-content: space-between; align-items: center; }
     .card-hdr h3 { font-size: 15px; font-weight: 600; }
-
-    /* Tabla méritos */
     .tbl { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
     .tbl th { padding: 8px 10px; background: #f3f4f6; font-weight: 600; color: #374151; text-align: center; }
     .tbl th:first-child { text-align: left; }
     .tbl td { padding: 8px 10px; text-align: center; }
     .tbl td:first-child { text-align: left; }
-
-    /* Botones */
     .btn { padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid #d1d5db; background: #fff; transition: background 0.2s; }
     .btn:hover { background: #f3f4f6; }
     .btn-blue { background: #2563eb; color: #fff; border: none; }
@@ -87,22 +40,13 @@
     .btn-blue:disabled { background: #93c5fd; cursor: not-allowed; }
     .btn-red { background: none; border: 1px solid #ef4444; color: #ef4444; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
     .btn-red:hover { background: #ef4444; color: #fff; }
-    .btn-gray { background: #f9fafb; border: 1px solid #9ca3af; color: #374151; }
     .btn-ghost { background: none; border: 1px solid #d1d5db; }
-
     .flex1 { flex: 1; }
-
-    /* Historial */
     .page-card { background: #fff; padding: 30px; border-radius: 14px; border: 1px solid #e5e7eb; }
     .hist-item { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
     .saved-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
     .tag { background: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 99px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
-    .tag-x { cursor: pointer; font-weight: 700; color: #ef4444; }
-
-    @media (max-width: 600px) {
-      .footer-btn-row { flex-wrap: wrap; }
-      .footer-btn-row .btn { flex: 1 1 45%; }
-    }
+    @media (max-width: 600px) { .footer-btn-row { flex-wrap: wrap; } .footer-btn-row .btn { flex: 1 1 45%; } }
   </style>
 </head>
 <body>
@@ -129,6 +73,11 @@ const MAESTROS = [
 ];
 
 const MERITOS = ["ASISTENCIA","BIBLIA","VERSICULO SEMANAL","AMIGO INVITADO"];
+
+// Solo letras y espacios (incluye acentos y ñ)
+const soloLetras = v => v.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ ]/g, "");
+// Solo números y caracteres de teléfono
+const soloNumeros = v => v.replace(/[^0-9+\-(). ]/g, "");
 
 function load(key, def) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; }
@@ -259,8 +208,6 @@ function App() {
 
   function borrarVisitanteGuardado(nombre) { setVisitantesSaved(prev=>prev.filter(n=>n!==nombre)); }
 
- 
-
   const cardStyle = {marginTop:22,paddingTop:14,borderTop:"2px solid #e5e7eb"};
 
   // ── DETALLE ──────────────────────────────────────────────────
@@ -322,7 +269,6 @@ function App() {
             </div>
             <div style={{display:"flex",gap:8,marginLeft:12}}>
               <button className="btn" style={{background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",fontSize:12}} onClick={()=>setDetalle(r)}>Ver</button>
-              
             </div>
           </div>
         ))}
@@ -334,8 +280,6 @@ function App() {
   return (
     <div className="page">
       <div className="form-wrap">
-
-        {/* Área scrollable */}
         <div className="form-body">
           <div className="hdr">
             <h1>Registro Ciudadano del Cielo</h1>
@@ -359,7 +303,6 @@ function App() {
             {MAESTROS.map(m=><option key={m}>{m}</option>)}
           </select>
 
-          {/* Miembros agregados */}
           {members.map(m=>(
             <div key={m.id} className="card">
               <div className="card-hdr">
@@ -370,53 +313,71 @@ function App() {
             </div>
           ))}
 
-          {/* Visitantes */}
           {visitors.map(v=>(
             <div key={v.id} className="card">
               <div className="card-hdr">
                 <h3>Visitante</h3>
                 <button className="btn-red" onClick={()=>setVisitors(prev=>prev.filter(x=>x.id!==v.id))}>Eliminar</button>
               </div>
+
               <label className="lbl-sm">Nombre completo</label>
-              <input className="field" type="text" placeholder="Nombres y Apellidos" value={v.nombre} onChange={e=>updateVisitor(v.id,"nombre",e.target.value)}/>
+              <input
+                className="field"
+                type="text"
+                placeholder="Nombres y Apellidos"
+                value={v.nombre}
+                onChange={e => updateVisitor(v.id, "nombre", soloLetras(e.target.value))}
+              />
+
               <label className="lbl-sm">Fecha de Nacimiento</label>
               <input className="field" type="date" value={v.nacimiento} onChange={e=>updateVisitor(v.id,"nacimiento",e.target.value)}/>
+
               <label className="lbl-sm">Fecha de Registro</label>
               <input className="field field-readonly" type="date" value={fecha} readOnly/>
-              <input className="field field-mt" type="tel" placeholder="Teléfono del contacto" value={v.telefono} onChange={e=>updateVisitor(v.id,"telefono",e.target.value)}/>
-              <input className="field field-mt" type="text" placeholder="Nombre del contacto" value={v.contacto} onChange={e=>updateVisitor(v.id,"contacto",e.target.value)}/>
+
+              <input
+                className="field field-mt"
+                type="tel"
+                placeholder="Teléfono del contacto"
+                value={v.telefono}
+                onChange={e => updateVisitor(v.id, "telefono", soloNumeros(e.target.value))}
+              />
+
+              <input
+                className="field field-mt"
+                type="text"
+                placeholder="Nombre del contacto"
+                value={v.contacto}
+                onChange={e => updateVisitor(v.id, "contacto", soloLetras(e.target.value))}
+              />
+
               <MeritsTable prefix={"v_"+v.id} meritos={v.meritos} onChange={(merit,val)=>updateMeritoVisitor(v.id,merit,val)}/>
             </div>
           ))}
         </div>
 
-        {/* ── Panel fijo inferior ── */}
+        {/* Panel fijo inferior */}
         <div className="form-footer">
-          {/* Select ciudadano + botón agregar miembro */}
           <div className="footer-select-row">
             <select className="field" style={{margin:0}} value={selected} onChange={e=>setSelected(e.target.value)}>
               <option value="">── Ciudadano Miembro ──</option>
               {visitorsConNombre.map(v=>(
-                <option key={"actual_"+v.id} value={v.nombre}> {v.nombre} (visitante)</option>
+                <option key={"actual_"+v.id} value={v.nombre}>{v.nombre} (visitante)</option>
               ))}
               {visitantesSaved.filter(n=>!visitorsConNombre.find(v=>v.nombre===n)).map(n=>(
-                <option key={"saved_"+n} value={n}> {n} (visitante)</option>
+                <option key={"saved_"+n} value={n}>{n} (visitante)</option>
               ))}
               {MIEMBROS_FIJOS.map(m=><option key={m}>{m}</option>)}
             </select>
             <button className="btn" onClick={agregarMiembro} style={{whiteSpace:"nowrap"}}>➕ Miembro</button>
           </div>
-
-          {/* Botones de acción */}
           <div className="footer-btn-row">
             <button className="btn flex1" onClick={agregarVisitante}>➕ Visitante</button>
             <button className="btn btn-blue flex1" onClick={enviar} disabled={enviando}>
               {enviando ? "Enviando..." : "Enviar Registro"}
             </button>
-           
           </div>
         </div>
-
       </div>
     </div>
   );
