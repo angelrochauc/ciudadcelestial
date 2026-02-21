@@ -259,11 +259,7 @@ function App() {
 
   function borrarVisitanteGuardado(nombre) { setVisitantesSaved(prev=>prev.filter(n=>n!==nombre)); }
 
-  function borrarRegistro(id) {
-    if (!confirm("¿Eliminar este registro del historial?")) return;
-    setHistorial(prev=>prev.filter(r=>r.id!==id));
-    if (detalle && detalle.id===id) setDetalle(null);
-  }
+ 
 
   const cardStyle = {marginTop:22,paddingTop:14,borderTop:"2px solid #e5e7eb"};
 
@@ -311,7 +307,7 @@ function App() {
             <p style={{fontSize:13,fontWeight:600,color:"#1e40af",marginBottom:10}}>⭐ Visitantes guardados en el selector</p>
             <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
               {visitantesSaved.map(n=>(
-                <span key={n} className="tag">{n}<span className="tag-x" onClick={()=>borrarVisitanteGuardado(n)}>×</span></span>
+                <span key={n} className="tag">{n}</span>
               ))}
             </div>
           </div>
@@ -326,7 +322,7 @@ function App() {
             </div>
             <div style={{display:"flex",gap:8,marginLeft:12}}>
               <button className="btn" style={{background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",fontSize:12}} onClick={()=>setDetalle(r)}>Ver</button>
-              <button className="btn-red" onClick={()=>borrarRegistro(r.id)}>Borrar</button>
+              
             </div>
           </div>
         ))}
